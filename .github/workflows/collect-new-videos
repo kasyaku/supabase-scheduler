@@ -1,0 +1,10 @@
+name: Collect New Videos (18:20 JST)
+
+on:
+  schedule:
+    - cron: '20 9 * * *' # JST 18:20
+  workflow_dispatch:
+
+jobs:
+  invoke-function:
+    # ...（前述の supabase CLI セットアップと invoke 処理）
