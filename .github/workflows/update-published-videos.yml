@@ -1,0 +1,26 @@
+name: Invoke update-published-videos
+
+on:
+  schedule:
+    - cron: '5 * * * *'  # 毎時5分（UTC）→ JSTで毎時14分
+  workflow_dispatch:      # 手動実行も可能
+
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Invoke Edge Function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          supabase functions invoke update-published-videos --project-ref $SUPABASE_PROJECT_REF --no-verify-jwt
