@@ -1,4 +1,4 @@
-name: Collect Playcount
+name: Collect Playcount Recent
 
 on:
   schedule:
