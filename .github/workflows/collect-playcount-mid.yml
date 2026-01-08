@@ -2,8 +2,8 @@ name: Collect Playcount Mid
 
 on:
   schedule:
-    - cron: '30 3 * * *'   # JST 12:30
-    - cron: '30 15 * * *'  # JST 0:30
+    - cron: '30 9 * * *'   # JST 18:30
+    - cron: '30 21 * * *'  # JST 6:30
   workflow_dispatch:
 
 jobs:
