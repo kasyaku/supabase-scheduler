@@ -2,17 +2,21 @@ name: Collect Playcount Recent
 
 on:
   schedule:
-    - cron: '30 21 * * *'  # JST 6:30
+    - cron: '30 0 * * *'   # JST 9:30
     - cron: '30 3 * * *'   # JST 12:30
+    - cron: '30 6 * * *'   # JST 15:30
     - cron: '30 9 * * *'   # JST 18:30
+    - cron: '30 12 * * *'  # JST 21:30
     - cron: '30 15 * * *'  # JST 0:30
+    - cron: '30 18 * * *'  # JST 3:30
+    - cron: '30 21 * * *'  # JST 6:30
   workflow_dispatch:
 
 jobs:
   call-function:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Supabase Function
+      - name: Call Supabase Function (recent)
         run: |
           curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
             -H "Content-Type: application/json" \
