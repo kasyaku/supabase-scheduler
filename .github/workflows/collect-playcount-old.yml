@@ -12,9 +12,12 @@ jobs:
       - name: Run old offset 0
         env:
           OFFSET: 0
+          SUPABASE_URL: ${{ secrets.SUPABASE_COLLECT_PLAYCOUNT_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl -X POST https://your-fn-url \
+          curl -X POST "$SUPABASE_URL" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -d "{\"mode\":\"single\",\"type\":\"old\",\"offset\":$OFFSET}"
 
   collect-old-part2:
@@ -24,9 +27,12 @@ jobs:
       - name: Run old offset 4000
         env:
           OFFSET: 4000
+          SUPABASE_URL: ${{ secrets.SUPABASE_COLLECT_PLAYCOUNT_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl -X POST https://your-fn-url \
+          curl -X POST "$SUPABASE_URL" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -d "{\"mode\":\"single\",\"type\":\"old\",\"offset\":$OFFSET}"
 
   collect-old-part3:
@@ -36,7 +42,10 @@ jobs:
       - name: Run old offset 8000
         env:
           OFFSET: 8000
+          SUPABASE_URL: ${{ secrets.SUPABASE_COLLECT_PLAYCOUNT_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl -X POST https://your-fn-url \
+          curl -X POST "$SUPABASE_URL" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -d "{\"mode\":\"single\",\"type\":\"old\",\"offset\":$OFFSET}"
