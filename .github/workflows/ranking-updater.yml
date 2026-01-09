@@ -2,7 +2,7 @@ name: Run ranking-updater daily
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # JST 19:00
+    - cron: '15 10 * * *'  # JST 19:15 = UTC 10:15
   workflow_dispatch: # 手動実行も可能にする
 
 jobs:
