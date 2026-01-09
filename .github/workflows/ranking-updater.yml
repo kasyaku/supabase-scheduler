@@ -1,0 +1,17 @@
+name: Run ranking-updater daily
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # JST 19:00
+  workflow_dispatch: # 手動実行も可能にする
+
+jobs:
+  run-ranking-updater:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Supabase Edge Function
+        run: |
+          curl -X POST "$SUPABASE_RANKING_UPDATER_URL" \
+            -H "Content-Type: application/json"
+        env:
+          SUPABASE_RANKING_UPDATER_URL: ${{ secrets.SUPABASE_RANKING_UPDATER_URL }}
