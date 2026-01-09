@@ -6,12 +6,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-function:
+  collect-old-part1:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Supabase Function (old)
-        run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -d '{"mode":"single","type":"old"}'
+      - name: Run old offset 0
+        run: curl -X POST https://your-fn-url \
+               -H "Content-Type: application/json" \
+               -d '{"mode":"single","type":"old"}'
+        env:
+          OLD_VIDEO_OFFSET: 0
+
+  collect-old-part2:
+    needs: collect-old-part1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run old offset 4000
+        run: curl -X POST https://your-fn-url \
+               -H "Content-Type: application/json" \
+               -d '{"mode":"single","type":"old"}'
+        env:
+          OLD_VIDEO_OFFSET: 4000
+
+  collect-old-part3:
+    needs: collect-old-part2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run old offset 8000
+        run: curl -X POST https://your-fn-url \
+               -H "Content-Type: application/json" \
+               -d '{"mode":"single","type":"old"}'
+        env:
+          OLD_VIDEO_OFFSET: 8000
