@@ -10,42 +10,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run old offset 0
-        env:
-          OFFSET: 0
-          SUPABASE_URL: ${{ secrets.SUPABASE_COLLECT_PLAYCOUNT_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl -X POST "$SUPABASE_URL" \
+          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -d "{\"mode\":\"single\",\"type\":\"old\",\"offset\":$OFFSET}"
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -d '{"mode":"single","type":"old","offset":0}'
 
   collect-old-part2:
     needs: collect-old-part1
     runs-on: ubuntu-latest
     steps:
       - name: Run old offset 4000
-        env:
-          OFFSET: 4000
-          SUPABASE_URL: ${{ secrets.SUPABASE_COLLECT_PLAYCOUNT_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl -X POST "$SUPABASE_URL" \
+          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -d "{\"mode\":\"single\",\"type\":\"old\",\"offset\":$OFFSET}"
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -d '{"mode":"single","type":"old","offset":4000}'
 
   collect-old-part3:
     needs: collect-old-part2
     runs-on: ubuntu-latest
     steps:
       - name: Run old offset 8000
-        env:
-          OFFSET: 8000
-          SUPABASE_URL: ${{ secrets.SUPABASE_COLLECT_PLAYCOUNT_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl -X POST "$SUPABASE_URL" \
+          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -d "{\"mode\":\"single\",\"type\":\"old\",\"offset\":$OFFSET}"
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -d '{"mode":"single","type":"old","offset":8000}'
