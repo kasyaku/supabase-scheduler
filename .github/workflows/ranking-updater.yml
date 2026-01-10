@@ -1,16 +1,33 @@
-name: Run ranking-updater daily
+name: Run Ranking Updater
 
 on:
   schedule:
-    - cron: '15 10 * * *'  # JST 19:15 = UTC 10:15
+    - cron: '15 10 * * *'  # JST 19:15
   workflow_dispatch:
 
 jobs:
-  call-function:
+  ranking:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Supabase Function (ranking-updater)
+      - name: Get total video count
+        id: get_total
         run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+          TOTAL=$(curl -s \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            "https://ukdywjvpcsltnrktbbmg.supabase.co/rest/v1/video?select=id&limit=1" \
+            -I | grep -i "content-range" | awk '{print $2}' | cut -d/ -f2)
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+      - name: Run ranking-updater in batches
+        run: |
+          TOTAL=${{ steps.get_total.outputs.total }}
+          BATCH=500
+          echo "Total videos: $TOTAL"
+
+          for ((i=0; i<$TOTAL; i+=$BATCH)); do
+            echo "Running batch offset=$i"
+            curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -d "{\"offset\": $i, \"limit\": $BATCH}"
+          done
