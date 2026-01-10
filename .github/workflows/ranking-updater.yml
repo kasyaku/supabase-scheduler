@@ -14,8 +14,9 @@ jobs:
         run: |
           TOTAL=$(curl -s \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            "https://ukdywjvpcsltnrktbbmg.supabase.co/rest/v1/video?select=id&limit=1" \
+            "https://ukdywjvpcsltnrktbbmg.supabase.co/rest/v1/video?select=id&limit=1&count=exact" \
             -I | grep -i "content-range" | awk '{print $2}' | cut -d/ -f2)
+
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
 
       - name: Run ranking-updater in batches
