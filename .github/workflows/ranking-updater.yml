@@ -9,23 +9,13 @@ jobs:
   ranking:
     runs-on: ubuntu-latest
     steps:
-      - name: Get total video count
-        id: get_total
-        run: |
-          TOTAL=$(curl -s \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            "https://ukdywjvpcsltnrktbbmg.supabase.co/rest/v1/video?select=id&limit=1&count=exact" \
-            -I | grep -i "content-range" | awk '{print $2}' | cut -d/ -f2)
-
-          echo "total=$TOTAL" >> $GITHUB_OUTPUT
-
       - name: Run ranking-updater in batches
         run: |
-          TOTAL=${{ steps.get_total.outputs.total }}
+          MAX=20000     # 想定より十分大きい値にしておく
           BATCH=500
-          echo "Total videos: $TOTAL"
+          echo "Running ranking-updater up to $MAX videos (batch=$BATCH)"
 
-          for ((i=0; i<$TOTAL; i+=$BATCH)); do
+          for ((i=0; i<$MAX; i+=$BATCH)); do
             echo "Running batch offset=$i"
             curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater \
               -H "Content-Type: application/json" \
