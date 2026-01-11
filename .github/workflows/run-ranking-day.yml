@@ -1,0 +1,27 @@
+name: Run Ranking DAY
+
+on:
+  schedule:
+    - cron: '15 10 * * *'
+  workflow_dispatch:
+
+jobs:
+  ranking:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ranking-updater-day in batches
+        run: |
+          MAX=20000
+          BATCH=200
+
+          for ((i=0; i<$MAX; i+=$BATCH)); do
+            echo "DAY offset=$i"
+
+            curl -s -o /dev/null -w "%{http_code}\n" \
+              -X POST https://xxxxx.functions.supabase.co/ranking-updater-day \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -d "{\"offset\": $i, \"limit\": $BATCH}"
+
+            sleep 1
+          done
