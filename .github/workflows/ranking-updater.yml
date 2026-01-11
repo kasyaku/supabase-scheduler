@@ -12,17 +12,18 @@ jobs:
       - name: Run ranking-updater in batches
         run: |
           MAX=20000
-          BATCH=200   # ← 500 → 200 に変更（offset=0 の負荷軽減）
+          BATCH=200
 
           echo "Running ranking-updater up to $MAX videos (batch=$BATCH)"
 
           for ((i=0; i<$MAX; i+=$BATCH)); do
             echo "Running batch offset=$i"
 
-            curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater \
+            curl -s -o /dev/null -w "%{http_code}\n" \
+              -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
               -d "{\"offset\": $i, \"limit\": $BATCH}"
 
-            sleep 1   # ← これが超重要（同じインスタンスを再利用させる）
+            sleep 1
           done
