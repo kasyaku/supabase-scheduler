@@ -18,7 +18,7 @@ jobs:
             echo "WEEK offset=$i"
 
             curl -s -o /dev/null -w "%{http_code}\n" \
-              -X POST https://YOUR_PROJECT_ID.functions.supabase.co/ranking-updater-week \
+              -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-week \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
               -d "{\"offset\": $i, \"limit\": $BATCH}"
