@@ -2,7 +2,7 @@ name: Run Ranking DAY
 
 on:
   schedule:
-    - cron: '15 10 * * *'
+    - cron: '15 10 * * *'  # JST 19:15
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
             echo "DAY offset=$i"
 
             curl -s -o /dev/null -w "%{http_code}\n" \
-              -X POST https://xxxxx.functions.supabase.co/ranking-updater-day \
+              -X POST https://YOUR_PROJECT_ID.functions.supabase.co/ranking-updater-day \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
               -d "{\"offset\": $i, \"limit\": $BATCH}"
