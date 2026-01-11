@@ -1,0 +1,27 @@
+name: Run Ranking MONTH
+
+on:
+  schedule:
+    - cron: '25 10 * * *'  # JST 19:25
+  workflow_dispatch:
+
+jobs:
+  ranking:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ranking-updater-month in batches
+        run: |
+          MAX=20000
+          BATCH=200
+
+          for ((i=0; i<$MAX; i+=$BATCH)); do
+            echo "MONTH offset=$i"
+
+            curl -s -o /dev/null -w "%{http_code}\n" \
+              -X POST https://YOUR_PROJECT_ID.functions.supabase.co/ranking-updater-month \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -d "{\"offset\": $i, \"limit\": $BATCH}"
+
+            sleep 1
+          done
