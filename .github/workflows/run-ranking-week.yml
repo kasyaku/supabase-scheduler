@@ -2,7 +2,7 @@ name: Run Ranking WEEK
 
 on:
   schedule:
-    - cron: '20 10 * * *'  # JST 19:20
+    - cron: '45 12 * * *'  # JST 21:45
   workflow_dispatch:
 
 jobs:
