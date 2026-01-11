@@ -2,7 +2,7 @@ name: Run Ranking YEAR
 
 on:
   schedule:
-    - cron: '30 10 * * *'  # JST 19:30
+    - cron: '45 17 * * *'  # JST 02:45
   workflow_dispatch:
 
 jobs:
