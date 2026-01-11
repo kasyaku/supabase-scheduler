@@ -2,7 +2,7 @@ name: Run Ranking DAY
 
 on:
   schedule:
-    #- cron: '15 10 * * *'  # JST 19:15
+    - cron: '15 9 * * *'  # JST 18:15
   workflow_dispatch:
 
 jobs:
