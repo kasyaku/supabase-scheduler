@@ -9,19 +9,33 @@ jobs:
   ranking:
     runs-on: ubuntu-latest
     steps:
-      - name: Run ranking-updater-day in batches
+      - name: Run ranking-updater-day with cursor paging
         run: |
-          MAX=20000
-          BATCH=200
+          lastId=""
+          LIMIT=200
 
-          for ((i=0; i<$MAX; i+=$BATCH)); do
-            echo "DAY offset=$i"
+          while true; do
+            echo "DAY lastId=$lastId"
 
-            curl -s -o /dev/null -w "%{http_code}\n" \
+            # API 呼び出し
+            RESPONSE=$(curl -s \
               -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-day \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-              -d "{\"offset\": $i, \"limit\": $BATCH}"
+              -d "{\"lastId\": \"$lastId\", \"limit\": $LIMIT}")
+
+            echo "Response: $RESPONSE"
+
+            # nextLastId を取り出す
+            nextLastId=$(echo "$RESPONSE" | jq -r '.nextLastId')
+
+            # null または空なら終了
+            if [ "$nextLastId" = "null" ] || [ -z "$nextLastId" ]; then
+              echo "DONE"
+              break
+            fi
+
+            lastId=$nextLastId
 
             sleep 1
           done
