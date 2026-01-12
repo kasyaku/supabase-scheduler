@@ -9,19 +9,30 @@ jobs:
   ranking:
     runs-on: ubuntu-latest
     steps:
-      - name: Run ranking-updater-week in batches
+      - name: Run ranking-updater-week with cursor paging
         run: |
-          MAX=20000
-          BATCH=200
+          lastId=""
+          LIMIT=200
 
-          for ((i=0; i<$MAX; i+=$BATCH)); do
-            echo "WEEK offset=$i"
+          while true; do
+            echo "WEEK lastId=$lastId"
 
-            curl -s -o /dev/null -w "%{http_code}\n" \
+            RESPONSE=$(curl -s \
               -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-week \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-              -d "{\"offset\": $i, \"limit\": $BATCH}"
+              -d "{\"lastId\": \"$lastId\", \"limit\": $LIMIT}")
+
+            echo "Response: $RESPONSE"
+
+            nextLastId=$(echo "$RESPONSE" | jq -r '.nextLastId')
+
+            if [ "$nextLastId" = "null" ] || [ -z "$nextLastId" ]; then
+              echo "DONE"
+              break
+            fi
+
+            lastId=$nextLastId
 
             sleep 1
           done
