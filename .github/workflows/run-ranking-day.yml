@@ -11,31 +11,32 @@ jobs:
     steps:
       - name: Run ranking-updater-day with cursor paging
         run: |
-          lastId=""
-          LIMIT=200
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          lastPk=""
+          LIMIT=100
 
           while true; do
-            echo "DAY lastId=$lastId"
+            echo "DAY lastPk=$lastPk"
 
-            # API 呼び出し
             RESPONSE=$(curl -s \
               -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-day \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-              -d "{\"lastId\": \"$lastId\", \"limit\": $LIMIT}")
+              -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
 
             echo "Response: $RESPONSE"
 
-            # nextLastId を取り出す
-            nextLastId=$(echo "$RESPONSE" | jq -r '.nextLastId')
+            nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
 
-            # null または空なら終了
-            if [ "$nextLastId" = "null" ] || [ -z "$nextLastId" ]; then
+            if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then
               echo "DONE"
               break
             fi
 
-            lastId=$nextLastId
+            lastPk=$nextLastPk
+            export lastPk
 
             sleep 1
           done
