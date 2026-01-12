@@ -11,28 +11,28 @@ jobs:
     steps:
       - name: Run ranking-updater-week with cursor paging
         run: |
-          lastId=""
+          lastPk=""
           LIMIT=200
 
           while true; do
-            echo "WEEK lastId=$lastId"
+            echo "WEEK lastPk=$lastPk"
 
             RESPONSE=$(curl -s \
               -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-week \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-              -d "{\"lastId\": \"$lastId\", \"limit\": $LIMIT}")
+              -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
 
             echo "Response: $RESPONSE"
 
-            nextLastId=$(echo "$RESPONSE" | jq -r '.nextLastId')
+            nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
 
-            if [ "$nextLastId" = "null" ] || [ -z "$nextLastId" ]; then
+            if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then
               echo "DONE"
               break
             fi
 
-            lastId=$nextLastId
+            lastPk=$nextLastPk
 
             sleep 1
           done
