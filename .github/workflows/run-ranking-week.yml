@@ -11,8 +11,11 @@ jobs:
     steps:
       - name: Run ranking-updater-week with cursor paging
         run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
           lastPk=""
-          LIMIT=200
+          LIMIT=100
 
           while true; do
             echo "WEEK lastPk=$lastPk"
@@ -33,6 +36,7 @@ jobs:
             fi
 
             lastPk=$nextLastPk
+            export lastPk
 
             sleep 1
           done
