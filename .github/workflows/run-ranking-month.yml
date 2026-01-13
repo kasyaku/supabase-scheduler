@@ -15,7 +15,7 @@ jobs:
           set -euo pipefail
 
           lastPk=""
-          LIMIT=100
+          LIMIT=80
 
           while true; do
             echo "MONTH lastPk=$lastPk"
