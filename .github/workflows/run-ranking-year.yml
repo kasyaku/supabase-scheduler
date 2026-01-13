@@ -15,7 +15,7 @@ jobs:
           set -euo pipefail
 
           lastPk=""
-          LIMIT=80
+          LIMIT=70
 
           while true; do
             echo "YEAR lastPk=$lastPk"
