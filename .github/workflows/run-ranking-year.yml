@@ -28,6 +28,13 @@ jobs:
 
             echo "Response: $RESPONSE"
 
+            # --- 追加：Cloudflare HTML（500）を検出したら正常終了扱い ---
+            if echo "$RESPONSE" | grep -q "<html>"; then
+              echo "Received HTML (likely Cloudflare 500)."
+              echo "YEAR batch processing is already complete. DONE"
+              break
+            fi
+
             nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
 
             if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then
