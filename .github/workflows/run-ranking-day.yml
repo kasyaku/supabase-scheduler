@@ -16,22 +16,73 @@ jobs:
 
           lastPk=""
           LIMIT=100
+          MAX_RETRY=3
 
           while true; do
             echo "DAY lastPk=$lastPk"
 
-            RESPONSE=$(curl -s \
-              -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-day \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-              -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
+            retry=0
+            RESPONSE=""
 
-            echo "Response: $RESPONSE"
+            # ============================
+            #   通信＋レスポンス検証ループ
+            # ============================
+            while true; do
+              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+                -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-day \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+                -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
 
+              echo "Response: $RESPONSE"
+
+              # --- 空レスポンス（curl失敗） ---
+              if [ -z "$RESPONSE" ]; then
+                echo "Empty response. Retry $((retry+1))/$MAX_RETRY"
+                retry=$((retry+1))
+                if [ $retry -ge $MAX_RETRY ]; then
+                  echo "Max retry reached. Stopping safely."
+                  break 2
+                fi
+                sleep 2
+                continue
+              fi
+
+              # --- Cloudflare HTML（500/520/524） ---
+              if echo "$RESPONSE" | grep -qi "<html"; then
+                echo "HTML response detected. Stopping safely."
+                break 2
+              fi
+
+              # --- JSON バリデーション ---
+              if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+                # JSON として有効 → 成功
+                break
+              fi
+
+              # --- JSON でない → リトライ ---
+              echo "Invalid JSON. Retry $((retry+1))/$MAX_RETRY"
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then
+                echo "Max retry reached. Stopping safely."
+                break 2
+              fi
+              sleep 2
+            done
+
+            # ============================
+            #   nextLastPk の処理
+            # ============================
             nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
 
             if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then
-              echo "DONE"
+              echo "DAY batch completed."
+              break
+            fi
+
+            # --- 巻き戻り検出（安全装置） ---
+            if [ -n "$lastPk" ] && [ "$nextLastPk" -le "$lastPk" ]; then
+              echo "Cursor rollback detected! Stopping."
               break
             fi
 
