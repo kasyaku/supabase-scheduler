@@ -6,11 +6,61 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-function:
+  collect:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Supabase Function
+      - name: Call collect-new-videos with safety checks
         run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-new-videos \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          MAX_RETRY=3
+          retry=0
+          RESPONSE=""
+
+          while true; do
+            echo "Calling collect-new-videos (retry=$retry)"
+
+            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+              -X POST ${{ secrets.SUPABASE_FUNCTION_URL_COLLECT_NEW_VIDEOS }} \
+              -H "Content-Type: application/json" \
+              -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+              -d '{}')
+
+            echo "Response: $RESPONSE"
+
+            # --- 空レスポンス（curl失敗） ---
+            if [ -z "$RESPONSE" ]; then
+              echo "Empty response. Retry $((retry+1))/$MAX_RETRY"
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then
+                echo "Max retry reached. Stopping safely."
+                exit 0
+              fi
+              sleep 2
+              continue
+            fi
+
+            # --- Cloudflare HTML（500/520/524） ---
+            if echo "$RESPONSE" | grep -qi "<html"; then
+              echo "HTML response detected. Stopping safely."
+              exit 0
+            fi
+
+            # --- JSON バリデーション ---
+            if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+              echo "Valid JSON. Success."
+              break
+            fi
+
+            # --- JSON でない → リトライ ---
+            echo "Invalid JSON. Retry $((retry+1))/$MAX_RETRY"
+            retry=$((retry+1))
+            if [ $retry -ge $MAX_RETRY ]; then
+              echo "Max retry reached. Stopping safely."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Collect new videos completed."
