@@ -22,7 +22,7 @@ jobs:
             echo "Calling collect-new-videos (retry=$retry)"
 
             RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
-              -X POST ${{ secrets.SUPABASE_FUNCTION_URL_COLLECT_NEW_VIDEOS }} \
+              -X POST "${{ secrets.SUPABASE_FUNCTION_URL_COLLECT_NEW_VIDEOS }}" \
               -H "Content-Type: application/json" \
               -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
               -d '{}')
