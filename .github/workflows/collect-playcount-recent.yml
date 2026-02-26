@@ -2,14 +2,14 @@ name: Collect Playcount Recent
 
 on:
   schedule:
-    - cron: '30 0 * * *'   # JST 9:30
+    - cron: '30 0 * * *'   # JST 09:30
     - cron: '30 3 * * *'   # JST 12:30
     - cron: '30 6 * * *'   # JST 15:30
     - cron: '30 9 * * *'   # JST 18:30
     - cron: '30 12 * * *'  # JST 21:30
-    - cron: '30 15 * * *'  # JST 0:30
-    - cron: '30 18 * * *'  # JST 3:30
-    - cron: '30 21 * * *'  # JST 6:30
+    - cron: '30 15 * * *'  # JST 00:30
+    - cron: '30 18 * * *'  # JST 03:30
+    - cron: '30 21 * * *'  # JST 06:30
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,51 @@ jobs:
     steps:
       - name: Call Supabase Function (recent)
         run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -d '{"mode":"single","type":"recent"}'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          MAX_RETRY=3
+          RETRY=0
+          BODY='{"mode":"single","type":"recent"}'
+
+          while [ $RETRY -lt $MAX_RETRY ]; do
+            echo "Calling collect-playcount (recent), retry=$RETRY"
+
+            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+              -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
+              -H "Content-Type: application/json" \
+              -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+              -d "$BODY")
+
+            echo "Response: $RESPONSE"
+
+            # --- 空レスポンス ---
+            if [ -z "$RESPONSE" ]; then
+              echo "Empty response. Retry..."
+              RETRY=$((RETRY+1))
+              sleep 2
+              continue
+            fi
+
+            # --- Cloudflare HTML ---
+            if echo "$RESPONSE" | grep -qi "<html"; then
+              echo "HTML response detected. Stopping safely."
+              exit 0
+            fi
+
+            # --- JSON バリデーション ---
+            if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+              echo "Valid JSON. Success."
+              break
+            fi
+
+            echo "Invalid JSON. Retry..."
+            RETRY=$((RETRY+1))
+            sleep 2
+          done
+
+          if [ $RETRY -eq $MAX_RETRY ]; then
+            echo "Max retry reached. Stopping safely."
+          fi
+
+          echo "Collect Playcount Recent completed."
