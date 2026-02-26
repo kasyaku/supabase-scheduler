@@ -6,34 +6,83 @@ on:
   workflow_dispatch:
 
 jobs:
-  collect-old-part1:
+  collect-old:
     runs-on: ubuntu-latest
     steps:
-      - name: Run old offset 0
+      - name: Run collect-playcount old with auto offset loop
         run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -d '{"mode":"single","type":"old","offset":0,"limit":4000}'
+          #!/usr/bin/env bash
+          set -euo pipefail
 
-  collect-old-part2:
-    needs: collect-old-part1
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run old offset 4000
-        run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -d '{"mode":"single","type":"old","offset":4000,"limit":4000}'
+          LIMIT=4000
+          offset=0
+          MAX_RETRY=3
 
-  collect-old-part3:
-    needs: collect-old-part2
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run old offset 8000
-        run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -d '{"mode":"single","type":"old","offset":8000,"limit":4000}'
+          while true; do
+            echo "Running old offset=$offset"
+
+            BODY="{\"mode\":\"single\",\"type\":\"old\",\"offset\":$offset,\"limit\":$LIMIT}"
+
+            retry=0
+            RESPONSE=""
+
+            # ============================
+            #   通信＋レスポンス検証ループ
+            # ============================
+            while true; do
+              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+                -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
+                -H "Content-Type: application/json" \
+                -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+                -d "$BODY")
+
+              echo "Response: $RESPONSE"
+
+              if [ -z "$RESPONSE" ]; then
+                retry=$((retry+1))
+                if [ $retry -ge $MAX_RETRY ]; then
+                  echo "Max retry reached. Stopping safely."
+                  exit 0
+                fi
+                sleep 2
+                continue
+              fi
+
+              if echo "$RESPONSE" | grep -qi "<html"; then
+                echo "HTML response detected. Stopping safely."
+                exit 0
+              fi
+
+              if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+                break
+              fi
+
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then
+                echo "Max retry reached. Stopping safely."
+                exit 0
+              fi
+              sleep 2
+            done
+
+            # ============================
+            #   次の offset を決める
+            # ============================
+            count=$(echo "$RESPONSE" | jq -r '.count // empty')
+
+            # count が返ってこない場合は終了
+            if [ -z "$count" ]; then
+              echo "No count returned. Stopping."
+              break
+            fi
+
+            # LIMIT 未満なら最後まで到達
+            if [ "$count" -lt "$LIMIT" ]; then
+              echo "Reached end of old videos. Done."
+              break
+            fi
+
+            # 次の offset へ
+            offset=$((offset + LIMIT))
+            sleep 1
+          done
