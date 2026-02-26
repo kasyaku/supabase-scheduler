@@ -12,7 +12,51 @@ jobs:
     steps:
       - name: Call Supabase Function (mid)
         run: |
-          curl -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -d '{"mode":"single","type":"mid"}'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          MAX_RETRY=3
+          RETRY=0
+          BODY='{"mode":"single","type":"mid"}'
+
+          while [ $RETRY -lt $MAX_RETRY ]; do
+            echo "Calling collect-playcount (mid), retry=$RETRY"
+
+            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+              -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
+              -H "Content-Type: application/json" \
+              -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+              -d "$BODY")
+
+            echo "Response: $RESPONSE"
+
+            # 空レスポンス
+            if [ -z "$RESPONSE" ]; then
+              echo "Empty response. Retry..."
+              RETRY=$((RETRY+1))
+              sleep 2
+              continue
+            fi
+
+            # Cloudflare HTML
+            if echo "$RESPONSE" | grep -qi "<html"; then
+              echo "HTML response detected. Stopping safely."
+              exit 0
+            fi
+
+            # JSON 判定
+            if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+              echo "Valid JSON. Success."
+              break
+            fi
+
+            echo "Invalid JSON. Retry..."
+            RETRY=$((RETRY+1))
+            sleep 2
+          done
+
+          if [ $RETRY -eq $MAX_RETRY ]; then
+            echo "Max retry reached. Stopping safely."
+          fi
+
+          echo "Collect Playcount Mid completed."
