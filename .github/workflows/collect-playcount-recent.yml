@@ -32,17 +32,17 @@ jobs:
           while [ $RETRY -lt $MAX_RETRY ]; do
             echo "---- Attempt retry=$RETRY ----"
 
-            RESPONSE=$(curl -v -s --retry 5 --retry-delay 2 --max-time 60 \
+            # ★ verbose(-v) と 2>&1 を完全に削除
+            RESPONSE=$(curl -s --max-time 60 \
               -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
               -H "Content-Type: application/json" \
               -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-              -d "$BODY" 2>&1)
+              -d "$BODY")
 
-            echo "---- Raw Response Start ----"
+            echo "---- Raw Response ----"
             echo "$RESPONSE"
-            echo "---- Raw Response End ----"
 
-            # --- 空レスポンス ---
+            # 空レスポンス
             if [ -z "$RESPONSE" ]; then
               echo "Empty response. Retry..."
               RETRY=$((RETRY+1))
@@ -50,13 +50,13 @@ jobs:
               continue
             fi
 
-            # --- Cloudflare HTML ---
+            # Cloudflare HTML
             if echo "$RESPONSE" | grep -qi "<html"; then
               echo "HTML response detected. Stopping safely."
               exit 0
             fi
 
-            # --- JSON バリデーション ---
+            # JSON バリデーション
             if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
               echo "Valid JSON. Success."
               break
