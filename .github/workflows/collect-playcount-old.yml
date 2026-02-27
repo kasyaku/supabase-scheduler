@@ -18,8 +18,11 @@ jobs:
           offset=0
           MAX_RETRY=3
 
+          echo "===== Collect Playcount Old START ====="
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
           while true; do
-            echo "Running old offset=$offset"
+            echo "---- Running old offset=$offset ----"
 
             BODY="{\"mode\":\"single\",\"type\":\"old\",\"offset\":$offset,\"limit\":$LIMIT}"
 
@@ -30,7 +33,8 @@ jobs:
             #   通信＋レスポンス検証ループ
             # ============================
             while true; do
-              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 300 \
+              # ★ verbose(-v) と 2>&1 を完全に削除
+              RESPONSE=$(curl -s --max-time 300 \
                 -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
                 -H "Content-Type: application/json" \
                 -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
@@ -38,6 +42,7 @@ jobs:
 
               echo "Response: $RESPONSE"
 
+              # 空レスポンス
               if [ -z "$RESPONSE" ]; then
                 retry=$((retry+1))
                 if [ $retry -ge $MAX_RETRY ]; then
@@ -48,11 +53,13 @@ jobs:
                 continue
               fi
 
+              # Cloudflare HTML
               if echo "$RESPONSE" | grep -qi "<html"; then
                 echo "HTML response detected. Stopping safely."
                 exit 0
               fi
 
+              # JSON バリデーション
               if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
                 break
               fi
@@ -83,3 +90,5 @@ jobs:
             offset=$((offset + LIMIT))
             sleep 1
           done
+
+          echo "===== Collect Playcount Old END ====="
