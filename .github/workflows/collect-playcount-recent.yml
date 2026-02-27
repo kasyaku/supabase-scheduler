@@ -25,16 +25,22 @@ jobs:
           RETRY=0
           BODY='{"mode":"single","type":"recent"}'
 
-          while [ $RETRY -lt $MAX_RETRY ]; do
-            echo "Calling collect-playcount (recent), retry=$RETRY"
+          echo "===== Collect Playcount Recent START ====="
+          echo "Request BODY: $BODY"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+          while [ $RETRY -lt $MAX_RETRY ]; do
+            echo "---- Attempt retry=$RETRY ----"
+
+            RESPONSE=$(curl -v -s --retry 5 --retry-delay 2 --max-time 20 \
               -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/collect-playcount \
               -H "Content-Type: application/json" \
               -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-              -d "$BODY")
+              -d "$BODY" 2>&1)
 
-            echo "Response: $RESPONSE"
+            echo "---- Raw Response Start ----"
+            echo "$RESPONSE"
+            echo "---- Raw Response End ----"
 
             # --- 空レスポンス ---
             if [ -z "$RESPONSE" ]; then
@@ -65,4 +71,4 @@ jobs:
             echo "Max retry reached. Stopping safely."
           fi
 
-          echo "Collect Playcount Recent completed."
+          echo "===== Collect Playcount Recent END ====="
