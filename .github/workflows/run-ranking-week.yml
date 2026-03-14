@@ -15,7 +15,7 @@ jobs:
           set -euo pipefail
 
           lastPk=""
-          LIMIT=50
+          LIMIT=100
           MAX_RETRY=3
 
           while true; do
