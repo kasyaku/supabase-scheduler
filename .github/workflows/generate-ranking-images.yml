@@ -16,21 +16,34 @@ jobs:
       - name: Create output directory
         run: mkdir -p output
 
+      # ============================
+      # 日付（YYYYMMDD）を生成
+      # ============================
+      - name: Set date variable
+        id: date
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      # ============================
       # 日間ランキング画像
+      # ============================
       - name: Generate daily ranking image
         run: |
           curl -s "https://www.dozlesearch.jp/api/og/ranking?period=day&type=video" \
-            --output output/daily.png
+            --output output/daily-${DATE}-day.png
 
+      # ============================
       # 週間ランキング画像
+      # ============================
       - name: Generate weekly ranking image
         run: |
           curl -s "https://www.dozlesearch.jp/api/og/ranking?period=week&type=video" \
-            --output output/weekly.png
+            --output output/daily-${DATE}-week.png
 
+      # ============================
       # アーティファクトとして保存
+      # ============================
       - name: Upload images
         uses: actions/upload-artifact@v4
         with:
-          name: ranking-images
+          name: ranking-images-${{ env.DATE }}
           path: output
