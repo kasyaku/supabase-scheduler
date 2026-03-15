@@ -1,0 +1,42 @@
+name: Generate Ranking Images
+
+on:
+  schedule:
+    - cron: "5 0 * * *" # JST 09:05（GitHubはUTCなので0:05）
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create output directory
+        run: mkdir -p output
+
+      # -----------------------------
+      # 日間ランキング画像
+      # -----------------------------
+      - name: Generate daily ranking image
+        run: |
+          curl -s "https://www.dozlesearch.jp/api/og/ranking?period=day&type=video" \
+            --output output/daily.png
+
+      # -----------------------------
+      # 週間ランキング画像
+      # -----------------------------
+      - name: Generate weekly ranking image
+        run: |
+          curl -s "https://www.dozlesearch.jp/api/og/ranking?period=week&type=video" \
+            --output output/weekly.png
+
+      # -----------------------------
+      # アーティファクトとして保存
+      # -----------------------------
+      - name: Upload images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ranking-images
+          path: output
