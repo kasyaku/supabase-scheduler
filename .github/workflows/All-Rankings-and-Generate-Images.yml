@@ -1,0 +1,246 @@
+name: Run All Rankings and Generate Images
+
+on:
+  schedule:
+    - cron: '40 9 * * *'  # JST 18:40 に1回だけ実行
+  workflow_dispatch:
+
+jobs:
+  ranking_day:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ranking-updater-day with cursor paging
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          lastPk=""
+          LIMIT=300
+          MAX_RETRY=3
+
+          while true; do
+            echo "DAY lastPk=$lastPk"
+
+            retry=0
+            RESPONSE=""
+
+            while true; do
+              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+                -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-day \
+                -H "Content-Type: application/json" \
+                -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+                -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
+
+              echo "Response: $RESPONSE"
+
+              if [ -z "$RESPONSE" ]; then
+                echo "Empty response. Retry $((retry+1))/$MAX_RETRY"
+                retry=$((retry+1))
+                if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+                sleep 2
+                continue
+              fi
+
+              if echo "$RESPONSE" | grep -qi "<html"; then break 2; fi
+              if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then break; fi
+
+              echo "Invalid JSON. Retry $((retry+1))/$MAX_RETRY"
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+              sleep 2
+            done
+
+            nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
+
+            if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then break; fi
+            if [ -n "$lastPk" ] && [ "$nextLastPk" -le "$lastPk" ]; then break; fi
+
+            lastPk=$nextLastPk
+            sleep 1
+          done
+
+  ranking_week:
+    runs-on: ubuntu-latest
+    needs: ranking_day
+    steps:
+      - name: Run ranking-updater-week with cursor paging
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          lastPk=""
+          LIMIT=300
+          MAX_RETRY=3
+
+          while true; do
+            echo "WEEK lastPk=$lastPk"
+
+            retry=0
+            RESPONSE=""
+
+            while true; do
+              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+                -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-week \
+                -H "Content-Type: application/json" \
+                -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+                -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
+
+              echo "Response: $RESPONSE"
+
+              if [ -z "$RESPONSE" ]; then
+                retry=$((retry+1))
+                if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+                sleep 2
+                continue
+              fi
+
+              if echo "$RESPONSE" | grep -qi "<html"; then break 2; fi
+              if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then break; fi
+
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+              sleep 2
+            done
+
+            nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
+
+            if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then break; fi
+            if [ -n "$lastPk" ] && [ "$nextLastPk" -le "$lastPk" ]; then break; fi
+
+            lastPk=$nextLastPk
+            sleep 1
+          done
+
+  ranking_month:
+    runs-on: ubuntu-latest
+    needs: ranking_week
+    steps:
+      - name: Run ranking-updater-month with cursor paging
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          lastPk=""
+          LIMIT=300
+          MAX_RETRY=3
+
+          while true; do
+            echo "MONTH lastPk=$lastPk"
+
+            retry=0
+            RESPONSE=""
+
+            while true; do
+              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+                -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-month \
+                -H "Content-Type: application/json" \
+                -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+                -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
+
+              echo "Response: $RESPONSE"
+
+              if [ -z "$RESPONSE" ]; then
+                retry=$((retry+1))
+                if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+                sleep 2
+                continue
+              fi
+
+              if echo "$RESPONSE" | grep -qi "<html"; then break 2; fi
+              if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then break; fi
+
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+              sleep 2
+            done
+
+            nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
+
+            if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then break; fi
+            if [ -n "$lastPk" ] && [ "$nextLastPk" -le "$lastPk" ]; then break; fi
+
+            lastPk=$nextLastPk
+            sleep 1
+          done
+
+  ranking_year:
+    runs-on: ubuntu-latest
+    needs: ranking_month
+    steps:
+      - name: Run ranking-updater-year with cursor paging
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          lastPk=""
+          LIMIT=300
+          MAX_RETRY=3
+
+          while true; do
+            echo "YEAR lastPk=$lastPk"
+
+            retry=0
+            RESPONSE=""
+
+            while true; do
+              RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+                -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/ranking-updater-year \
+                -H "Content-Type: application/json" \
+                -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+                -d "{\"lastPk\": \"$lastPk\", \"limit\": $LIMIT}")
+
+              echo "Response: $RESPONSE"
+
+              if [ -z "$RESPONSE" ]; then
+                retry=$((retry+1))
+                if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+                sleep 2
+                continue
+              fi
+
+              if echo "$RESPONSE" | grep -qi "<html"; then break 2; fi
+              if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then break; fi
+
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then break 2; fi
+              sleep 2
+            done
+
+            nextLastPk=$(echo "$RESPONSE" | jq -r '.nextLastPk')
+
+            if [ "$nextLastPk" = "null" ] || [ -z "$nextLastPk" ]; then break; fi
+            if [ -n "$lastPk" ] && [ "$nextLastPk" -le "$lastPk" ]; then break; fi
+
+            lastPk=$nextLastPk
+            sleep 1
+          done
+
+  ranking_image:
+    runs-on: ubuntu-latest
+    needs: ranking_year
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create output directory
+        run: mkdir -p output
+
+      - name: Set date variable
+        id: date
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - name: Generate daily ranking image
+        run: |
+          curl -s "https://www.dozlesearch.jp/api/og/ranking?period=day&type=video" \
+            --output output/daily-${DATE}-day.png
+
+      - name: Generate weekly ranking image
+        run: |
+          curl -s "https://www.dozlesearch.jp/api/og/ranking?period=week&type=video" \
+            --output output/daily-${DATE}-week.png
+
+      - name: Upload images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ranking-images-${{ env.DATE }}
+          path: output
