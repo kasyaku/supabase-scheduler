@@ -1,0 +1,66 @@
+name: Channel Stats Daily
+
+on:
+  schedule:
+    - cron: '0 16 * * *'  # JST 01:00
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call channel-stats-daily with safety checks
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          MAX_RETRY=3
+          retry=0
+          RESPONSE=""
+
+          while true; do
+            echo "Calling channel-stats-daily (retry=$retry)"
+
+            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+              -X POST "${{ secrets.SUPABASE_FUNCTION_URL_CHANNEL_STATS_DAILY }}" \
+              -H "Content-Type: application/json" \
+              -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+              -d '{}')
+
+            echo "Response: $RESPONSE"
+
+            # --- 空レスポンス（curl失敗） ---
+            if [ -z "$RESPONSE" ]; then
+              echo "Empty response. Retry $((retry+1))/$MAX_RETRY"
+              retry=$((retry+1))
+              if [ $retry -ge $MAX_RETRY ]; then
+                echo "Max retry reached. Stopping safely."
+                exit 0
+              fi
+              sleep 2
+              continue
+            fi
+
+            # --- Cloudflare HTML（500/520/524） ---
+            if echo "$RESPONSE" | grep -qi "<html"; then
+              echo "HTML response detected. Stopping safely."
+              exit 0
+            fi
+
+            # --- JSON バリデーション ---
+            if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+              echo "Valid JSON. Success."
+              break
+            fi
+
+            # --- JSON でない → リトライ ---
+            echo "Invalid JSON. Retry $((retry+1))/$MAX_RETRY"
+            retry=$((retry+1))
+            if [ $retry -ge $MAX_RETRY ]; then
+              echo "Max retry reached. Stopping safely."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Channel stats daily completed."
