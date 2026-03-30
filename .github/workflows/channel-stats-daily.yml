@@ -21,7 +21,7 @@ jobs:
           while true; do
             echo "Calling channel-stats-daily (retry=$retry)"
 
-            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 20 \
+            RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 900 \
               -X POST "${{ secrets.SUPABASE_FUNCTION_URL_CHANNEL_STATS_DAILY }}" \
               -H "Content-Type: application/json" \
               -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
