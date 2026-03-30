@@ -1,4 +1,4 @@
-name: Collect Playcount Old
+name: Collect Playcount Old + Fix Missing Snapshot
 
 on:
   schedule:
@@ -91,3 +91,32 @@ jobs:
           done
 
           echo "===== Collect Playcount Old END ====="
+
+      # ============================================
+      #  🔥 ここから fix-missing-snapshot を自動実行
+      # ============================================
+      - name: Run fix-missing-snapshot
+        run: |
+          echo "===== Running fix-missing-snapshot ====="
+
+          RESPONSE=$(curl -s --max-time 900 \
+            -X POST https://ukdywjvpcsltnrktbbmg.functions.supabase.co/fix-missing-snapshot \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d "{}")
+
+          echo "Response: $RESPONSE"
+
+          # Cloudflare HTML
+          if echo "$RESPONSE" | grep -qi "<html"; then
+            echo "HTML response detected. Stopping safely."
+            exit 0
+          fi
+
+          # JSON バリデーション
+          if ! echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
+            echo "Invalid JSON from fix-missing-snapshot"
+            exit 1
+          fi
+
+          echo "===== fix-missing-snapshot DONE ====="
