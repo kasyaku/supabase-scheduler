@@ -2,7 +2,7 @@ name: Collect New Videos
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 毎時0分（UTC）→ JST 毎時9分
+    - cron: '5 * * * *'  # 毎時5分（UTC）→ JST 毎時14分
   workflow_dispatch:
 
 jobs:
@@ -29,7 +29,6 @@ jobs:
 
             echo "Response: $RESPONSE"
 
-            # --- 空レスポンス（curl失敗） ---
             if [ -z "$RESPONSE" ]; then
               echo "Empty response. Retry $((retry+1))/$MAX_RETRY"
               retry=$((retry+1))
@@ -41,19 +40,16 @@ jobs:
               continue
             fi
 
-            # --- Cloudflare HTML（500/520/524） ---
             if echo "$RESPONSE" | grep -qi "<html"; then
               echo "HTML response detected. Stopping safely."
               exit 0
             fi
 
-            # --- JSON バリデーション ---
             if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
               echo "Valid JSON. Success."
               break
             fi
 
-            # --- JSON でない → リトライ ---
             echo "Invalid JSON. Retry $((retry+1))/$MAX_RETRY"
             retry=$((retry+1))
             if [ $retry -ge $MAX_RETRY ]; then
