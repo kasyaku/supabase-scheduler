@@ -2,7 +2,7 @@ name: Collect New Videos
 
 on:
   schedule:
-    - cron: '20 9 * * *'  # JST 18:20
+    - cron: '0 * * * *'  # 毎時0分（UTC）→ JST 毎時9分
   workflow_dispatch:
 
 jobs:
