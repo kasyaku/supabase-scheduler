@@ -1,0 +1,32 @@
+name: Auto Tag Runner Manual
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call auto-tag-runner with secret
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          echo "Calling auto-tag-runner..."
+
+          RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 900 \
+            -X POST "${{ secrets.SUPABASE_FUNCTION_URL_AUTO_TAG_RUNNER }}" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d '{}')
+
+          echo "Response: $RESPONSE"
+
+          # --- HTML（Cloudflare 500/520/524） ---
+          if echo "$RESPONSE" | grep -qi "<html"; then
+            echo "HTML response detected. Stopping safely."
+            exit 0
+          fi
+
+          # --- JSON でなくても OK（auto-tag-runner は 'ok' を返すだけ） ---
+          echo "Auto tag runner completed."
