@@ -30,6 +30,7 @@ jobs:
 
             echo "Response: $RESPONSE"
 
+            # --- 空レスポンス ---
             if [ -z "$RESPONSE" ]; then
               echo "Empty response. Retry $((retry+1))/$MAX_RETRY"
               retry=$((retry+1))
@@ -41,11 +42,13 @@ jobs:
               continue
             fi
 
+            # --- Cloudflare HTML（500/520/524） ---
             if echo "$RESPONSE" | grep -qi "<html"; then
               echo "HTML response detected. Stopping safely."
               exit 0
             fi
 
+            # --- JSON バリデーション ---
             if echo "$RESPONSE" | jq empty >/dev/null 2>&1; then
               echo "Valid JSON. Success."
               break
@@ -61,3 +64,30 @@ jobs:
           done
 
           echo "Collect new videos completed."
+
+          # ============================================================
+          # ⭐ Collect が成功したので Auto Tag Runner を実行
+          # ============================================================
+          echo "Running auto-tag-runner..."
+
+          ATR_RESPONSE=$(curl -s --retry 5 --retry-delay 2 --max-time 900 \
+            -X POST "${{ secrets.SUPABASE_FUNCTION_URL_AUTO_TAG_RUNNER }}" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -d '{}')
+
+          echo "Auto Tag Runner Response: $ATR_RESPONSE"
+
+          # --- 空レスポンス ---
+          if [ -z "$ATR_RESPONSE" ]; then
+            echo "Auto Tag Runner returned empty response. Stopping safely."
+            exit 0
+          fi
+
+          # --- Cloudflare HTML ---
+          if echo "$ATR_RESPONSE" | grep -qi "<html"; then
+            echo "HTML response detected from Auto Tag Runner. Stopping safely."
+            exit 0
+          fi
+
+          echo "Auto Tag Runner completed."
